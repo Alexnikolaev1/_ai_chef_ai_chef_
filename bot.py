@@ -46,27 +46,21 @@ logger = logging.getLogger(__name__)
 last_request_time: dict[int, datetime] = {}
 
 # === КАРТИНКИ ===
-# Сначала локальные файлы (images/start.jpeg и т.д.), затем URL из config, затем fallback
+# Локальные файлы images/start.jpeg, balance.jpeg, recipe.jpeg (+ Images/ для Windows)
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
+IMAGES_DIR_ALT = Path(__file__).resolve().parent / "Images"  # альтернативный регистр
 IMAGE_EXTENSIONS = (".jpeg", ".jpg", ".png", ".webp")
-# Fallback-URL (picsum.photos — разрешает hotlink), если нет локальных файлов
-_IMAGE_FALLBACK = {
-    "start": "https://picsum.photos/seed/chef-start/400/300",
-    "balance": "https://picsum.photos/seed/chef-balance/400/300",
-    "recipe": "https://picsum.photos/seed/chef-recipe/400/300",
-}
 
 
 def _get_image_source(name: str) -> Path | str | None:
-    """Источник картинки: локальный Path, URL из config, или fallback URL."""
-    for ext in IMAGE_EXTENSIONS:
-        path = IMAGES_DIR / f"{name}{ext}"
-        if path.exists():
-            return path
+    """Локальный файл (images/ или Images/) или URL из config."""
+    for base in (IMAGES_DIR, IMAGES_DIR_ALT):
+        for ext in IMAGE_EXTENSIONS:
+            path = base / f"{name}{ext}"
+            if path.exists():
+                return path
     url = {"start": IMAGE_START_URL, "balance": IMAGE_BALANCE_URL, "recipe": IMAGE_RECIPE_URL}.get(name, "")
-    if url:
-        return url
-    return _IMAGE_FALLBACK.get(name)
+    return url if url else None
 
 
 # ======================================================
@@ -445,15 +439,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = query.from_user
 
     if data == "new_recipe":
-        await query.edit_message_text(
+        text = (
             "🍳 *Создание рецепта*\n\n"
             "Напиши команду `/recipe` и опиши что хочешь приготовить:\n\n"
             "*Примеры:*\n"
             "• `/recipe яйца, сыр, зелень`\n"
             "• `/recipe быстрый завтрак`\n"
-            "• `/recipe десерт без выпечки`",
-            parse_mode=ParseMode.MARKDOWN
+            "• `/recipe десерт без выпечки`"
         )
+        if query.message.photo:
+            await query.message.delete()
+            await context.bot.send_message(query.message.chat_id, text, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
 
     elif data == "balance":
         user_data = await db.get_user(user.id)
@@ -479,14 +477,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(balance_text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
 
     elif data == "buy":
-        await query.edit_message_text(
-            pay.format_packages_text() + "\n\n👆 Выбери пакет:",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_packages_keyboard()
-        )
+        buy_text = pay.format_packages_text() + "\n\n👆 Выбери пакет:"
+        buy_kb = get_packages_keyboard()
+        if query.message.photo:
+            await query.message.delete()
+            await context.bot.send_message(
+                query.message.chat_id, buy_text,
+                parse_mode=ParseMode.MARKDOWN, reply_markup=buy_kb
+            )
+        else:
+            await query.edit_message_text(buy_text, parse_mode=ParseMode.MARKDOWN, reply_markup=buy_kb)
 
     elif data == "help":
-        await query.edit_message_text(
+        help_text = (
             "❓ *Как пользоваться AI-Шефом:*\n\n"
             "1. Напиши `/recipe` + ингредиенты или описание блюда\n"
             "2. Подожди 5-15 секунд\n"
@@ -495,19 +498,37 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• `курица, лимон, тимьян`\n"
             "• `что-то вкусное из кабачков`\n"
             "• `быстрый ужин до 20 минут`\n"
-            "• `веганский торт без сахара`",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("⬅️ Назад", callback_data="back_main")
-            ]])
+            "• `веганский торт без сахара`"
         )
+        help_kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("⬅️ Назад", callback_data="back_main")
+        ]])
+        if query.message.photo:
+            await query.message.delete()
+            await context.bot.send_message(
+                query.message.chat_id, help_text,
+                parse_mode=ParseMode.MARKDOWN, reply_markup=help_kb
+            )
+        else:
+            await query.edit_message_text(help_text, parse_mode=ParseMode.MARKDOWN, reply_markup=help_kb)
 
     elif data == "back_main":
-        await query.edit_message_text(
-            f"👨‍🍳 *AI-Шеф*\n\nЧто будем готовить?",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_main_keyboard()
-        )
+        # edit_message_text не работает на фото — удаляем и отправляем заново
+        main_text = "👨‍🍳 *AI-Шеф*\n\nЧто будем готовить?"
+        reply_kw = {"parse_mode": ParseMode.MARKDOWN, "reply_markup": get_main_keyboard()}
+        if query.message.photo:
+            await query.message.delete()
+            if (img := _get_image_source("start")):
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=img,
+                    caption=main_text,
+                    **reply_kw,
+                )
+            else:
+                await context.bot.send_message(chat_id=query.message.chat_id, text=main_text, **reply_kw)
+        else:
+            await query.edit_message_text(main_text, **reply_kw)
 
     elif data.startswith("buy_"):
         # Пользователь выбрал конкретный пакет
