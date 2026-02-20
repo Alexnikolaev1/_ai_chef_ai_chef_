@@ -1,0 +1,18 @@
+# Telegram Bot (21.7+ для совместимости httpx с yandex-ai-studio-sdk)
+python-telegram-bot>=21.7
+
+# Yandex AI Studio SDK (официальный, YandexGPT)
+# https://github.com/yandex-cloud/yandex-ai-studio-sdk
+yandex-ai-studio-sdk==0.19.0
+
+# База данных (асинхронный SQLite)
+aiosqlite==0.19.0
+
+# Переменные окружения
+python-dotenv==1.0.1
+
+# Оплата через ЮKassa
+yookassa==3.1.0
+
+# Webhook API (Vercel)
+fastapi>=0.100.0
