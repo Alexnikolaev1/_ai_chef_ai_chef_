@@ -127,5 +127,7 @@ CACHE_TTL_HOURS: int = 24
 # ======================================================
 # БАЗА ДАННЫХ
 # ======================================================
-# На Vercel: задай DB_PATH=/tmp/ai_chef.db в Environment Variables (данные не сохраняются между cold start)
-DB_PATH: str = os.getenv("DB_PATH") or ("/tmp/ai_chef.db" if os.getenv("VERCEL") else "ai_chef.db")
+# На Vercel/Lambda /tmp — единственная записываемая директория
+# VERCEL или AWS_LAMBDA_FUNCTION_NAME → принудительно /tmp (иначе read-only)
+_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+DB_PATH: str = "/tmp/ai_chef.db" if _is_serverless else (os.getenv("DB_PATH") or "ai_chef.db")
