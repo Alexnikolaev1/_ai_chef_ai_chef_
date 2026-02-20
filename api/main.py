@@ -120,6 +120,8 @@ async def telegram_webhook(request: Request):
     update_id = body.get("update_id", "N/A")
 
     try:
+        import database as db
+        await db.init_db()  # Гарантированно до любых запросов к БД (post_init может опоздать)
         from telegram import Update
         application = _get_bot_application()
         await application.initialize()
