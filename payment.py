@@ -6,7 +6,7 @@
 import asyncio
 import uuid
 import logging
-from config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, YOOKASSA_RETURN_URL, PACKAGES
+from config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, YOOKASSA_RETURN_URL, PACKAGES, YOOKASSA_USE_MOCK
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +41,9 @@ async def create_payment(user_id: int, package_key: str) -> dict:
     amount = package["price"]
     recipes_count = package["recipes"]
 
-    if YOOKASSA_AVAILABLE and YOOKASSA_SHOP_ID != "test_shop":
-        return await _create_real_payment(user_id, package_key, amount, recipes_count, package["name"])
-    else:
+    if YOOKASSA_USE_MOCK or not YOOKASSA_AVAILABLE or YOOKASSA_SHOP_ID in ("test_shop", ""):
         return await _create_mock_payment(user_id, package_key, amount, recipes_count)
+    return await _create_real_payment(user_id, package_key, amount, recipes_count, package["name"])
 
 
 def _create_real_payment_sync(user_id: int, package_key: str,
@@ -88,7 +87,13 @@ async def _create_real_payment(user_id: int, package_key: str,
             lambda: _create_real_payment_sync(user_id, package_key, amount, recipes_count, name),
         )
     except Exception as e:
+        err_msg = str(e)
         logger.error(f"❌ Ошибка создания платежа ЮKassa: {e}")
+        if "401" in err_msg:
+            logger.error(
+                "401 = неверные ключи. Проверь YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY "
+                "из тестового магазина: Интеграция → Ключи API"
+            )
         raise RuntimeError(f"Ошибка создания платежа: {e}") from e
 
 

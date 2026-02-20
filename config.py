@@ -63,6 +63,9 @@ YOOKASSA_SECRET_KEY: str = os.getenv("YOOKASSA_SECRET_KEY", "test_key")
 # URL возврата пользователя после оплаты (обычно ссылка на бота)
 YOOKASSA_RETURN_URL: str = os.getenv("YOOKASSA_RETURN_URL", "https://t.me/your_bot")
 
+# YOOKASSA_USE_MOCK=1 — мок-платежи (для теста без ключей). Убери для боевого режима.
+YOOKASSA_USE_MOCK: bool = os.getenv("YOOKASSA_USE_MOCK", "").strip() in ("1", "true", "yes")
+
 
 # ======================================================
 # АДМИНИСТРАТОРЫ БОТА

@@ -13,9 +13,21 @@
 | `TELEGRAM_BOT_TOKEN` | Токен от @BotFather |
 | `YANDEX_FOLDER_ID` | ID каталога Yandex Cloud |
 | `YANDEX_API_KEY` | API-ключ Yandex Cloud |
-| `YOOKASSA_SHOP_ID` | ID магазина ЮKassa |
-| `YOOKASSA_SECRET_KEY` | Секретный ключ ЮKassa |
-| `YOOKASSA_RETURN_URL` | URL возврата (например `https://t.me/your_bot`) |
+| `YOOKASSA_SHOP_ID` | ID магазина (shopId) из ЮKassa |
+| `YOOKASSA_SECRET_KEY` | Секретный ключ из ЮKassa |
+| `YOOKASSA_RETURN_URL` | URL возврата (например `https://t.me/ai_cheffood_bot`) |
+
+### Тестовый магазин ЮKassa (401 = неверные ключи)
+
+1. [Создай тестовый магазин](https://yookassa.ru/docs/support/merchant/payments/implement/test-store): Личный кабинет → Добавить магазин → Тестовый магазин
+2. **Интеграция → Ключи API** → Выпустить секретный ключ
+3. Скопируй **shopId** (идентификатор магазина) и **секретный ключ**
+4. В Vercel задай `YOOKASSA_SHOP_ID` и `YOOKASSA_SECRET_KEY` — именно из тестового магазина
+5. **Интеграция → HTTP-уведомления** → URL: `https://твой-домен.vercel.app/api/yookassa-webhook`
+
+Для тестовой карты: [документация ЮKassa](https://yookassa.ru/docs/support/merchant/payments/implement/test-store)
+
+**Временно без ключей:** задай `YOOKASSA_USE_MOCK=1` — бот будет показывать мок-ссылку вместо реальной оплаты.
 | `ADMIN_IDS` | Telegram user_id через запятую |
 
 **Важно:** На Vercel можно задать `DB_PATH=/tmp/ai_chef.db` — данные в `/tmp` не сохраняются между cold start. Для продакшена с сохранением данных используй внешнюю БД (например Turso, PlanetScale).
