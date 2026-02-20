@@ -593,6 +593,7 @@ async def process_purchase(query, user_id: int, package_key: str):
             [InlineKeyboardButton("⬅️ Назад", callback_data="buy")]
         ])
 
+        pid = payment_data["payment_id"][:18]
         await query.edit_message_text(
             f"💎 *{pkg['name']}*\n\n"
             f"📖 {pkg['recipes']} рецептов\n"
@@ -600,14 +601,14 @@ async def process_purchase(query, user_id: int, package_key: str):
             f"1. Нажми «Оплатить»\n"
             f"2. Заверши оплату на сайте\n"
             f"3. Нажми «Проверить оплату»\n\n"
-            f"_ID платежа: {payment_data['payment_id'][:16]}..._",
+            f"ID: `{pid}`",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=keyboard
         )
 
     except Exception as e:
         await query.edit_message_text(
-            f"❌ Ошибка создания платежа. Попробуй позже.\n`{e}`",
+            "❌ Ошибка создания платежа. Попробуй позже или напиши в поддержку.",
             parse_mode=ParseMode.MARKDOWN
         )
         logger.error(f"Ошибка создания платежа для {user_id}: {e}")
