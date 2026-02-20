@@ -3,6 +3,7 @@ AI-Шеф: Telegram-бот для генерации рецептов через
 Основной файл — точка входа и все обработчики команд.
 """
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -25,13 +26,14 @@ from config import (
 )
 
 # === НАСТРОЙКА ЛОГОВ ===
+# На Vercel файловая система read-only (кроме /tmp) — FileHandler("bot.log") падает с 500
+_log_handlers = [logging.StreamHandler()]
+if not os.getenv("VERCEL"):
+    _log_handlers.append(logging.FileHandler("bot.log", encoding="utf-8"))
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     level=logging.INFO,
-    handlers=[
-        logging.StreamHandler(),                          # В консоль
-        logging.FileHandler("bot.log", encoding="utf-8") # В файл
-    ]
+    handlers=_log_handlers,
 )
 logger = logging.getLogger(__name__)
 
