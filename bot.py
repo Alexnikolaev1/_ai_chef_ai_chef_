@@ -26,10 +26,13 @@ from config import (
 )
 
 # === НАСТРОЙКА ЛОГОВ ===
-# На Vercel файловая система read-only (кроме /tmp) — FileHandler("bot.log") падает с 500
-_log_handlers = [logging.StreamHandler()]
+# На Vercel/Lambda файловая система read-only — FileHandler падает с 500
+_log_handlers: list = [logging.StreamHandler()]
 if not os.getenv("VERCEL"):
-    _log_handlers.append(logging.FileHandler("bot.log", encoding="utf-8"))
+    try:
+        _log_handlers.append(logging.FileHandler("bot.log", encoding="utf-8"))
+    except OSError:
+        pass  # read-only FS (serverless)
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     level=logging.INFO,
