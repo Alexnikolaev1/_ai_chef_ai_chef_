@@ -23,6 +23,7 @@ from config import (
     MAX_PROMPT_LENGTH, PACKAGES, FREE_RECIPES_ON_START,
     YANDEX_FOLDER_ID, YANDEX_API_KEY,
     YANDEX_MODEL,
+    IMAGE_START_URL, IMAGE_BALANCE_URL, IMAGE_RECIPE_URL,
 )
 
 # === НАСТРОЙКА ЛОГОВ ===
@@ -44,18 +45,28 @@ logger = logging.getLogger(__name__)
 # {user_id: datetime последнего запроса}
 last_request_time: dict[int, datetime] = {}
 
-# === ПУТИ К КАРТИНКАМ ===
+# === КАРТИНКИ ===
+# Сначала локальные файлы (images/start.jpeg и т.д.), затем URL из config, затем fallback
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
 IMAGE_EXTENSIONS = (".jpeg", ".jpg", ".png", ".webp")
+# Fallback-URL (picsum.photos — разрешает hotlink), если нет локальных файлов
+_IMAGE_FALLBACK = {
+    "start": "https://picsum.photos/seed/chef-start/400/300",
+    "balance": "https://picsum.photos/seed/chef-balance/400/300",
+    "recipe": "https://picsum.photos/seed/chef-recipe/400/300",
+}
 
 
-def _get_image_path(name: str) -> Path | None:
-    """Найти путь к картинке по имени (start, balance, recipe). Формат: .jpeg, .jpg, .png."""
+def _get_image_source(name: str) -> Path | str | None:
+    """Источник картинки: локальный Path, URL из config, или fallback URL."""
     for ext in IMAGE_EXTENSIONS:
         path = IMAGES_DIR / f"{name}{ext}"
         if path.exists():
             return path
-    return None
+    url = {"start": IMAGE_START_URL, "balance": IMAGE_BALANCE_URL, "recipe": IMAGE_RECIPE_URL}.get(name, "")
+    if url:
+        return url
+    return _IMAGE_FALLBACK.get(name)
 
 
 # ======================================================
@@ -215,7 +226,7 @@ async def _generate_recipe_for_user(
             else:
                 raise
 
-        if (img := _get_image_path("recipe")):
+        if (img := _get_image_source("recipe")):
             await bot.send_photo(
                 chat_id=chat_id,
                 photo=img,
@@ -282,7 +293,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     reply_kw = {"parse_mode": ParseMode.MARKDOWN, "reply_markup": get_main_keyboard()}
-    if (img := _get_image_path("start")):
+    if (img := _get_image_source("start")):
         await update.message.reply_photo(photo=img, caption=welcome_text, **reply_kw)
     else:
         await update.message.reply_text(welcome_text, **reply_kw)
@@ -362,7 +373,7 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton("💎 Купить ещё", callback_data="buy")
     ]])
     reply_kw = {"parse_mode": ParseMode.MARKDOWN, "reply_markup": keyboard}
-    if (img := _get_image_path("balance")):
+    if (img := _get_image_source("balance")):
         await update.message.reply_photo(photo=img, caption=text, **reply_kw)
     else:
         await update.message.reply_text(text, **reply_kw)
@@ -455,7 +466,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("💎 Купить рецепты", callback_data="buy"),
             InlineKeyboardButton("⬅️ Назад", callback_data="back_main")
         ]])
-        if (img := _get_image_path("balance")):
+        if (img := _get_image_source("balance")):
             await query.message.delete()
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,

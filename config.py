@@ -90,6 +90,16 @@ MAX_PROMPT_LENGTH: int = 500
 
 
 # ======================================================
+# КАРТИНКИ (опционально)
+# ======================================================
+# Локальные файлы: images/start.jpeg, balance.jpeg, recipe.jpeg
+# Или URL (для Vercel, где локальные файлы могут не попасть в деплой):
+IMAGE_START_URL: str = os.getenv("IMAGE_START_URL", "").strip()
+IMAGE_BALANCE_URL: str = os.getenv("IMAGE_BALANCE_URL", "").strip()
+IMAGE_RECIPE_URL: str = os.getenv("IMAGE_RECIPE_URL", "").strip()
+
+
+# ======================================================
 # ПАКЕТЫ РЕЦЕПТОВ (монетизация)
 # ======================================================
 PACKAGES: dict = {
